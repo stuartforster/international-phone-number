@@ -10,7 +10,7 @@ angular.module("internationalPhoneNumber", [])
     autoHideDialCode:       true
     autoPlaceholder:        true
     customPlaceholder:      null
-    defaultCountry:         ""
+    initialCountry:         ""
     geoIpLookup:            null
     nationalMode:           true
     numberType:             "MOBILE"
@@ -27,6 +27,7 @@ angular.module("internationalPhoneNumber", [])
   scope:
     ngModel: '='
     country: '='
+    geoIpLookup: '&'
 
   link: (scope, element, attrs, ctrl) ->
 
@@ -47,6 +48,23 @@ angular.module("internationalPhoneNumber", [])
       else
         value.toString().replace(/[ ]/g, '').split(',')
 
+    checkReadOnly = () ->
+      readOnly = attrs.readonly
+      if readOnly
+        readOnlyClass = 'intl-tel-input-read-only'
+        divIntlTelInput = element.parents('.intl-tel-input:first')
+        divIntlTelInput.find('select:first').attr('disabled', true)
+        divIntlTelInput.find('.iti-arrow').hide()
+        readOnlySpan = divIntlTelInput.find('span.' + readOnlyClass)
+        if readOnlySpan.length == 0 and element.val() != ''
+          readOnlySpan = angular.element('<span></span>')
+          readOnlySpan.attr('class', readOnlyClass)
+          readOnlySpan.attr('style', 'padding-left: 38px')
+          element.hide()
+          element.after(readOnlySpan)
+        readOnlySpan.text(element.val())
+      return
+
     options = angular.copy(ipnConfig)
 
     angular.forEach options, (value, key) ->
@@ -60,7 +78,7 @@ angular.module("internationalPhoneNumber", [])
         options[key] = (option == "true")
       else
         options[key] = option
-
+    options['geoIpLookup'] = if scope.geoIpLookup then scope.geoIpLookup() else null
     # Wait for ngModel to be set
     watchOnce = scope.$watch('ngModel', (newValue) ->
       # Wait to see if other scope variables were set at the same time
@@ -84,7 +102,7 @@ angular.module("internationalPhoneNumber", [])
 
     scope.$watch('country', (newValue) ->
         if newValue != null && newValue != undefined && newValue != ''
-            element.intlTelInput("selectCountry", newValue)
+            element.intlTelInput("setCountry", newValue)
     )
 
     ctrl.$formatters.push (value) ->
@@ -92,6 +110,7 @@ angular.module("internationalPhoneNumber", [])
         return value
 
       element.intlTelInput 'setNumber', value
+      checkReadOnly()
       element.val()
 
     ctrl.$parsers.push (value) ->
